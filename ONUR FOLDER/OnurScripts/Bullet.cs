@@ -5,6 +5,7 @@ using Photon.Pun;
 using Photon.Realtime;
 using Photon.Pun.UtilityScripts;
 using ExitGames.Client.Photon;
+using System.Collections;
 
 public class Bullet : MonoBehaviour
 {
@@ -16,7 +17,8 @@ public class Bullet : MonoBehaviour
     string playerNickName;
     bool half;
     bool full;
-   static bool isTouch = false;
+    public bool isTouch = false;
+    GameObject player;
     
     public static Action<string> OwnerName;
     Rigidbody rb;
@@ -34,72 +36,69 @@ public class Bullet : MonoBehaviour
         rb = GetComponent<Rigidbody>();
     }
    void Update()
-    {
-       
-    }
+   {
+        Shoot();
+      
+   }
     public void SetOwner(GameObject ownerOfBullet)
     {
 
         playerNickName = ownerOfBullet.GetComponent<PhotonView>().Owner.NickName;
 
     }
+
+    void Shoot()
+    {
+        RaycastHit hit;
+        if(Physics.Raycast(transform.position, transform.forward, out hit, 1f))
+        {
+           
+            if(hit.transform.gameObject.layer == 9 && !isTouch)
+            {
+                isTouch = true;
+                hit.transform.gameObject.GetComponent<PhotonView>().RPC("DecreaseHealth", RpcTarget.All, 20);
+            
+            }
+          
+            
+        }
+    }
+    
+    
     private void OnTriggerEnter(Collider other)
     {
        
-        
-        if (!isTouch)
-        {
-           
+         
             if (other.transform.gameObject.CompareTag("Player"))
             {
-                isTouch = true;
-                Debug.Log(isTouch);
-                //rb.isKinematic = true;
-                other.transform.gameObject.GetComponent<PlayerHealth>().currentHealth -= 20;
-                Debug.Log(other.transform.gameObject.GetComponent<PlayerHealth>().currentHealth);
-                pv.GetComponent<Rigidbody>().isKinematic = true;
-                Vector3 bulletPos = gameObject.transform.position;
-                
-                if (other.transform.gameObject.GetComponent<PlayerHealth>().currentHealth <= 40)
-                {
-                    half = true;
-                }
-
-
-                if (other.transform.gameObject.GetComponent<PlayerHealth>().currentHealth <= 1)
-                {
-                    full = true;
-                    ApplyKillToOwner();
-                }
-
-                other.gameObject.GetComponent<PhotonView>().RPC("DamageToPlayer", RpcTarget.All, half, full, playerNickName, bulletPos);
                 if (pv.IsMine)
                 {
                     PhotonNetwork.Destroy(gameObject);
-
                 }
-                half = false;
-                full = false;
-                isTouch = false;
-
-
+              
             }
           
-        }
-        if (other.gameObject.CompareTag("Map"))
-        {
-          if (pv.IsMine)
-            {
-               
-                PhotonNetwork.Destroy(gameObject);
-                Destroy(gameObject, 1f);
-            }
-        }
+        
+      
         
     }
+    
+    private void ApplyDamageToPlayer(GameObject player)
+    {
+        if (isTouch)
+        {
+            Debug.Log("girdi");
+            player.gameObject.GetComponent<PhotonView>().RPC("TakeDamage", RpcTarget.All, 50);
+            PhotonNetwork.Destroy(this.gameObject);
+           
+        }
+        isTouch = false;
+    }
 
+ 
     private void ApplyKillToOwner()
     {
+        /*
         if (pv.IsMine)
         {
             Hashtable hash = new Hashtable();
@@ -109,7 +108,13 @@ public class Bullet : MonoBehaviour
             Debug.Log("KÝLL : " + pv.Owner.NickName + " Has " + killsOfParent);
 
         }
+        */
+    }
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.blue;
+        Vector3 direction = transform.TransformDirection(Vector3.forward) * 1f;
+        Gizmos.DrawRay(transform.position, direction);
     }
 
- 
 }

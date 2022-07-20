@@ -48,6 +48,9 @@ public class TankPlayer : MonoBehaviour
     private float vertical;
     bool canShoot = true;
     bool isGrounded;
+    int health = 100;
+    int currentHealth;
+    
     private void Awake()
     {
 
@@ -60,20 +63,26 @@ public class TankPlayer : MonoBehaviour
     }
     void Start()
     {
+        currentHealth = health;
         //Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         controller = GetComponent<CharacterController>();
         playerNameText.text = photonView.Owner.NickName;
         playerNameText.color = Color.green;
         turretView = GetComponentInChildren<PhotonView>();
-       
+        //GetComponent<BoxCollider>().enabled = false;
+
+
     }
     void Update()
     {
         isGrounded = Physics.Raycast(transform.position, Vector3.down, out hit, 0.1f);
         yPos = transform.position;
+       // GetComponent<BoxCollider>().enabled = true;
         if (photonView.IsMine)
         {
+            
+            //GetComponent<Collider>().gameObject.SetActive(true);
             if (yPos.y < -0.01f)
             {
                 transform.position = new Vector3(transform.position.x, 0f, transform.position.z);
@@ -90,7 +99,7 @@ public class TankPlayer : MonoBehaviour
         }
         if (turretView.IsMine)
         {
-            turretRotation();
+            TurretRotation();
         }
      }
     void MovePlayer()
@@ -100,6 +109,7 @@ public class TankPlayer : MonoBehaviour
        Vector3 direction = new Vector3(horizontal, 0f, vertical).normalized;
        if (direction.magnitude >= 0.1f)
             {
+                 GetComponent<BoxCollider>().enabled = true;
                 float targetAngel = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg + PlayerCamera.transform.eulerAngles.y;
                 float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngel, ref turnSmoothVelocity, smoothTime);
                 transform.rotation = Quaternion.Euler(0f, angle, 0f);
@@ -109,9 +119,9 @@ public class TankPlayer : MonoBehaviour
                
        }
        if (Input.GetKeyDown(KeyCode.Space))
-         {
+       {
                 Fire();
-        }
+       }
         
             
     }
@@ -125,6 +135,7 @@ public class TankPlayer : MonoBehaviour
         {
             playerList.SetActive(true);
             playerList.gameObject.GetComponentInChildren<TextMeshProUGUI>().text = "";
+
             
             foreach (Player p in PhotonNetwork.PlayerList)
             {
@@ -152,7 +163,7 @@ public class TankPlayer : MonoBehaviour
        controller.Move(moveVeloticy * Time.deltaTime);
     }
     */
-    void turretRotation()
+    void TurretRotation()
     {
         if (Input.GetKey(KeyCode.RightArrow))
         {
@@ -198,7 +209,18 @@ public class TankPlayer : MonoBehaviour
         }
 
     }
-    
+
+    [PunRPC]
+    public void TakeDamage(int damage)
+    {
+        currentHealth -= damage;
+        Debug.Log(currentHealth);
+        if (currentHealth <= 0)
+        {
+           Debug.Log("Dead");
+        }
+    }
+
     private void OnDrawGizmos()
     {
         Color color = Color.red;

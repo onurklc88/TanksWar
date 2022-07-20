@@ -16,6 +16,7 @@ public class PlayerHealth : MonoBehaviour
     public int currentHealth;
     public int deadsOfParent;
     public TextMeshProUGUI killLog;
+    public TextMeshProUGUI hpText;
     public TextMeshProUGUI respawnText;
     public  MMFeedbacks camShake;
     float counter = 3f;
@@ -31,8 +32,30 @@ public class PlayerHealth : MonoBehaviour
         currentHealth = health;
         respawnButton.SetActive(false);
     }
-    
 
+    private void Update()
+    {
+        if (pv.IsMine)
+        {
+            hpText.text = currentHealth.ToString();
+            if(currentHealth <= 0)
+            {
+                killLog.text = "YOU KILLED BY ";
+                respawnUI.SetActive(true);
+                respawnButton.SetActive(true);
+                Hashtable hash = new Hashtable();
+                deadsOfParent = Convert.ToInt32(GetComponent<PhotonView>().Owner.CustomProperties["Dead"]);
+                hash.Add("Dead", deadsOfParent + 1);
+                pv.Owner.SetCustomProperties(hash);
+                GetComponentInParent<TankPlayer>().enabled = false;
+                Cursor.visible = true;
+            
+
+                explode.Play();
+        }
+        }
+        
+    }
 
     [PunRPC]
     public void DamageToPlayer(bool half, bool dead, string player, Vector3 muzzlePos)
@@ -74,11 +97,14 @@ public class PlayerHealth : MonoBehaviour
     {
         respawnText.text = "Respawn ýn" + counter;
         GetComponent<PhotonView>().RPC("Respawn", RpcTarget.All);
-     
+    }
+    [PunRPC]
+    public void DecreaseHealth(int damage)
+    {
+        currentHealth -= damage;
     }
 
-    
-   [PunRPC]
+    [PunRPC]
     public void Respawn()
     {
         currentHealth = health;
